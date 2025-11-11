@@ -2,7 +2,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "ml_network.cpp"
+#include <cmath>
+
+#include "ml_network.h"
 
 using namespace std;
 
