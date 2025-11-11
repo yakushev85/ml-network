@@ -135,97 +135,97 @@ void MultiNetwork::learn(bool showInfo)
 }
 
 double MultiNetwork::iteration() 
+{
+    double totalErrorSum = 0.0;
+    vector<TeachDataEntity>* learningData = configuration->teachData;
+
+    double alphaValue = configuration->alpha;
+    double speedValue = configuration->speed;
+    int outputSize = configuration->neuronCounts->at(configuration->neuronCounts->size()-1);
+
+    for (TeachDataEntity teachData : *(learningData)) 
     {
-        double totalErrorSum = 0.0;
-        vector<TeachDataEntity>* learningData = configuration->teachData;
+        // step 1 execute net with teach data
+        vector<double>* actualOutput = execute(teachData.inp);
+        vector<double>* expectedOutput = teachData.output;
 
-        double alphaValue = configuration->alpha;
-        double speedValue = configuration->speed;
-        int outputSize = configuration->neuronCounts->at(configuration->neuronCounts->size()-1);
-
-        for (TeachDataEntity teachData : *(learningData)) 
+        // step 2 generate sigma for last layer and update errorSum
+        for (int j=0;j<outputSize;j++) 
         {
-            // step 1 execute net with teach data
-            vector<double>* actualOutput = execute(teachData.inp);
-            vector<double>* expectedOutput = teachData.output;
+            layers->at(layers->size()-1)->getNeurons()->at(j)->sigma =
+                -1.0*actualOutput->at(j)*(1-actualOutput->at(j))*(expectedOutput->at(j)-actualOutput->at(j));
+            totalErrorSum += (abs(expectedOutput->at(j)-actualOutput->at(j)) > 0.5)? 1.0 : 0.0;
+        }
 
-            // step 2 generate sigma for last layer and update errorSum
-            for (int j=0;j<outputSize;j++) 
+        // step 3 generate sigma for other layers
+        for (int i=layers->size()-2;i>=0;i--) 
+        {
+            for (int j=0;j<layers->at(i)->getNeurons()->size();j++) 
             {
-                layers->at(layers->size()-1)->getNeurons()->at(j)->sigma =
-                    -1.0*actualOutput->at(j)*(1-actualOutput->at(j))*(expectedOutput->at(j)-actualOutput->at(j));
-                totalErrorSum += (abs(expectedOutput->at(j)-actualOutput->at(j)) > 0.5)? 1.0 : 0.0;
-            }
+                double currentSigma = 0.0;
+                double output = layers->at(i)->getNeurons()->at(j)->output;
+                double preSigma = output*(1-output);
 
-            // step 3 generate sigma for other layers
-            for (int i=layers->size()-2;i>=0;i--) 
-            {
-                for (int j=0;j<layers->at(i)->getNeurons()->size();j++) 
+                for (Neuron* neuron : *(layers->at(i+1)->getNeurons())) 
                 {
-                    double currentSigma = 0.0;
-                    double output = layers->at(i)->getNeurons()->at(j)->output;
-                    double preSigma = output*(1-output);
-
-                    for (Neuron* neuron : *(layers->at(i+1)->getNeurons())) 
-                    {
-                        currentSigma += neuron->weights->at(j) * neuron->sigma;
-                    }
-
-                    currentSigma = preSigma * currentSigma;
-
-                    layers->at(i)->getNeurons()->at(j)->sigma = currentSigma;
-                }
-            }
-
-            // step 4.1 generate delta
-            for (int k=0;k<layers->size();k++) 
-            {
-                vector<double>* output = new vector<double>();
-                if (k == 0) 
-                {
-                    for (double v : *(teachData.inp)) {
-                        output->push_back(v);
-                    }
-                } 
-                else 
-                {
-                    int outSize = layers->at(k-1)->getNeurons()->size();
-                    output->clear();
-
-                    for (int l=0;l<outSize;l++) 
-                    {
-                        output->push_back(layers->at(k-1)->getNeurons()->at(l)->output);
-                    }
+                    currentSigma += neuron->weights->at(j) * neuron->sigma;
                 }
 
-                for (int j=0;j<layers->at(k)->getNeurons()->size();j++) 
-                {
-                    vector<double>* delta = layers->at(k)->getNeurons()->at(j)->delta;
+                currentSigma = preSigma * currentSigma;
 
-                    for (int i=0;i<delta->size();i++) 
-                    {
-                        double currentSigma = layers->at(k)->getNeurons()->at(j)->sigma;
-                        delta->at(i) = alphaValue*delta->at(i)+(1-alphaValue)*speedValue*currentSigma*output->at(i);
-                    }
-                }
-
-                delete output;
-            }
-
-            // step 4.2 update weights
-            for (Layer* layer : *(layers)) 
-            {
-                for (Neuron* neuron : *(layer->getNeurons())) 
-                {
-                    vector<double>* currentDelta = neuron->delta;
-
-                    for (int i=0;i<neuron->inCount;i++) 
-                    {
-                        neuron->weights->at(i) = neuron->weights->at(i) - currentDelta->at(i);
-                    }
-                }
+                layers->at(i)->getNeurons()->at(j)->sigma = currentSigma;
             }
         }
 
-        return totalErrorSum;
+        // step 4.1 generate delta
+        for (int k=0;k<layers->size();k++) 
+        {
+            vector<double>* output = new vector<double>();
+            if (k == 0) 
+            {
+                for (double v : *(teachData.inp)) {
+                    output->push_back(v);
+                }
+            } 
+            else 
+            {
+                int outSize = layers->at(k-1)->getNeurons()->size();
+                output->clear();
+
+                for (int l=0;l<outSize;l++) 
+                {
+                    output->push_back(layers->at(k-1)->getNeurons()->at(l)->output);
+                }
+            }
+
+            for (int j=0;j<layers->at(k)->getNeurons()->size();j++) 
+            {
+                vector<double>* delta = layers->at(k)->getNeurons()->at(j)->delta;
+
+                for (int i=0;i<delta->size();i++) 
+                {
+                    double currentSigma = layers->at(k)->getNeurons()->at(j)->sigma;
+                    delta->at(i) = alphaValue*delta->at(i)+(1-alphaValue)*speedValue*currentSigma*output->at(i);
+                }
+            }
+
+            delete output;
+        }
+
+        // step 4.2 update weights
+        for (Layer* layer : *(layers)) 
+        {
+            for (Neuron* neuron : *(layer->getNeurons())) 
+            {
+                vector<double>* currentDelta = neuron->delta;
+
+                for (int i=0;i<neuron->inCount;i++) 
+                {
+                    neuron->weights->at(i) = neuron->weights->at(i) - currentDelta->at(i);
+                }
+            }
+        }
     }
+
+    return totalErrorSum;
+}
