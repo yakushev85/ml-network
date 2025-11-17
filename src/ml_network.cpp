@@ -6,6 +6,7 @@
 #include "ml_network.h"
 
 using namespace std;
+using namespace ML;
 
 Neuron::Neuron(int inCount, double initialWeightValue) 
 {

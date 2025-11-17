@@ -1,61 +1,69 @@
+#ifndef ML_NETWORK_H
+#define ML_NETWORK_H
+
 #include <vector>
 
 using namespace std;
 
-struct TeachDataEntity 
-{
-	vector<double>* inp;
-	vector<double>* output;
-};
+namespace ML {
 
-struct NetConfiguration 
-{
-    int inCount;
-    vector<int>* neuronCounts;
-    int maxLearningIterations;
-    double initialWeightValue;
-    double alpha, speed;
-    vector<TeachDataEntity>* teachData;
-};
+    struct TeachDataEntity 
+    {
+        vector<double>* inp;
+        vector<double>* output;
+    };
 
-class Neuron 
-{
-	public:
-	int inCount;
-	vector<double>* inVector;
-	vector<double>* weights;
-	double net;
-	double output;
-	double sigma;
-	vector<double>* delta;
-	double weightOffset;
+    struct NetConfiguration 
+    {
+        int inCount;
+        vector<int>* neuronCounts;
+        int maxLearningIterations;
+        double initialWeightValue;
+        double alpha, speed;
+        vector<TeachDataEntity>* teachData;
+    };
 
-	Neuron(int inCount, double initialWeightValue);
-    ~Neuron();
-	double generateOutput();
-};
+    class Neuron 
+    {
+        public:
+        int inCount;
+        vector<double>* inVector;
+        vector<double>* weights;
+        double net;
+        double output;
+        double sigma;
+        vector<double>* delta;
+        double weightOffset;
 
-class Layer 
-{
-    private: 
-    vector<Neuron*>* neurons;
+        Neuron(int inCount, double initialWeightValue);
+        ~Neuron();
+        double generateOutput();
+    };
 
-    public: 
-    Layer(int inCount, int neuronLayerCount, double initialWeightValue);
-    ~Layer();
-    vector<Neuron*>* getNeurons();
-};
+    class Layer 
+    {
+        private: 
+        vector<Neuron*>* neurons;
 
-class MultiNetwork 
-{
-    private:
-    NetConfiguration* configuration;
-    vector<Layer*>* layers;
+        public: 
+        Layer(int inCount, int neuronLayerCount, double initialWeightValue);
+        ~Layer();
+        vector<Neuron*>* getNeurons();
+    };
 
-    public: 
-    MultiNetwork(NetConfiguration* configuration);
-    ~MultiNetwork();
-    vector<double>* execute(vector<double>* inVector);
-    void learn(bool showInfo);
-    double iteration();
-};
+    class MultiNetwork 
+    {
+        private:
+        NetConfiguration* configuration;
+        vector<Layer*>* layers;
+
+        public: 
+        MultiNetwork(NetConfiguration* configuration);
+        ~MultiNetwork();
+        vector<double>* execute(vector<double>* inVector);
+        void learn(bool showInfo);
+        double iteration();
+    };
+}
+
+#endif // ML_NETWORK_H
