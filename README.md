@@ -1,6 +1,6 @@
 # Description
 
-Simple implementation of a neural network using C++. Learning using BackPropagation alhorithm.
+Simple implementation of a neural network using C++.
 
 # Build
 
